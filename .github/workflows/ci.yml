@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-and-dockerize:
+  train-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +20,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        pip install --upgrade pip
         pip install mlflow scikit-learn pandas numpy
 
     - name: Run MLflow Project (Training)
@@ -30,7 +31,7 @@ jobs:
     - name: Upload MLflow Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: trained-model
+        name: mlflow-runs
         path: MLProject/mlruns
 
     - name: Log in to Docker Hub
@@ -39,12 +40,16 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build Docker Image with MLflow
+    - name: Build Docker Image from Latest Run
       run: |
+        cd MLProject
+        RUN_ID=$(ls mlruns/*/*/meta.yaml | head -n 1 | awk -F'/' '{print $3}')
+        echo "Using RUN_ID=$RUN_ID"
+
         mlflow models build-docker \
-          -m "models:/MachineFailureRF/1" \
-          -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
-          
+          -m "runs:/$RUN_ID/model" \
+          -n ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-mlflow-model
+
     - name: Push Docker Image
       run: |
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-mlflow-model
