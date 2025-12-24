@@ -1,4 +1,4 @@
-name: MLflow CI/CD Pipeline (FINAL FIX)
+name: MLflow CI/CD Pipeline
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
         echo "✅ Training completed!"
         echo "Artifacts uploaded to GitHub Actions artifacts"
 
-  build-docker-mlflow:
+  build-docker:
     needs: train-model
     runs-on: ubuntu-latest
 
@@ -54,23 +54,28 @@ jobs:
         name: mlflow-model-artifacts
         path: MLProject/mlruns/
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-
-    - name: Install MLflow
+    # Verifikasi Dockerfile ada
+    - name: Verify Dockerfile exists
       run: |
-        pip install mlflow==2.9.0
-
-    - name: Debug - Show directory structure
-      run: |
-        echo "=== Full mlruns structure ==="
-        cd MLProject
-        find mlruns -name "MLmodel" 2>/dev/null || echo "No MLmodel found"
+        if [ ! -f "MLProject/Dockerfile" ]; then
+          echo "❌ ERROR: Dockerfile not found in MLProject/"
+          exit 1
+        fi
+        echo "✅ Dockerfile found"
+        ls -la MLProject/
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
+    # Explicit file path
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./MLProject
+        file: ./MLProject/Dockerfile 
+        push: false
+        tags: ai4i2020-model:latest
+        load: true
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -78,94 +83,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build Docker Image using MLflow
-      run: |
-        cd MLProject
-        
-        echo "🔍 Searching for MLmodel file..."
-        
-        # Find MLmodel file anywhere in mlruns (not just mlruns/0)
-        MODEL_FILE=$(find mlruns -name "MLmodel" -type f 2>/dev/null | head -1)
-        
-        if [ -z "$MODEL_FILE" ]; then
-          echo "❌ ERROR: No MLmodel file found!"
-          echo "Full directory structure:"
-          find mlruns -type f 2>/dev/null
-          exit 1
-        fi
-        
-        # Get the model directory
-        MODEL_PATH=$(dirname "$MODEL_FILE")
-        echo "✅ Found model at: $MODEL_PATH"
-        
-        # Verify MLmodel file exists
-        if [ ! -f "$MODEL_PATH/MLmodel" ]; then
-          echo "❌ MLmodel file verification failed"
-          exit 1
-        fi
-        
-        echo "📦 Model directory contents:"
-        ls -la "$MODEL_PATH"
-        
-        # Build docker image
-        echo ""
-        echo "🐳 Building Docker image with MLflow..."
-        echo "Command: mlflow models build-docker -m $MODEL_PATH -n ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest"
-        echo ""
-        
-        mlflow models build-docker \
-          -m "$MODEL_PATH" \
-          -n "${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest"
-        
-        echo ""
-        echo "✅ Docker image built successfully!"
-
-    - name: Verify Docker image was created
-      run: |
-        echo "🔍 Checking if Docker image exists..."
-        docker images | grep ai4i2020-model
-        
-        if [ $? -eq 0 ]; then
-          echo "✅ Docker image found!"
-        else
-          echo "❌ Docker image not found!"
-          exit 1
-        fi
-
     - name: Push to Docker Hub
       run: |
-        echo "⬆️ Pushing image to Docker Hub..."
+        docker tag ai4i2020-model:latest ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest
-        echo "✅ Successfully pushed: ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest"
-
-    - name: Tag and push version
-      run: |
-        echo "🏷️ Creating version tag: v${{ github.run_number }}"
-        docker tag ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest \
-                   ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:v${{ github.run_number }}
-        
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:v${{ github.run_number }}
-        echo "✅ Successfully pushed: ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:v${{ github.run_number }}"
-
-    - name: Final Summary
-      run: |
-        echo ""
-        echo "════════════════════════════════════════════"
-        echo "✅ DOCKER IMAGE SUCCESSFULLY BUILT & PUSHED!"
-        echo "════════════════════════════════════════════"
-        echo ""
-        echo "🐳 Repository: ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model"
-        echo "🏷️  Tags available:"
-        echo "   - latest"
-        echo "   - v${{ github.run_number }}"
-        echo ""
-        echo "📥 Pull command:"
-        echo "   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest"
-        echo ""
-        echo "🚀 Run command:"
-        echo "   docker run -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model:latest"
-        echo ""
-        echo "🌐 Docker Hub:"
-        echo "   https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/ai4i2020-model"
-        echo ""
-        echo "════════════════════════════════════════════"
