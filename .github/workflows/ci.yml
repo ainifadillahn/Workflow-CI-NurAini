@@ -64,23 +64,30 @@ jobs:
       run: |
         pip install mlflow==2.9.0 scikit-learn pandas numpy
     
-    - name: Find Run ID and Build Docker
+    - name: Find and Build Docker Image
       run: |
         cd MLProject
         
-        # Find the latest run ID
-        RUN_ID=$(find mlruns/1 -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | head -n 1)
+        echo "=== Debugging mlruns structure ==="
+        ls -la mlruns/
+        find mlruns -type d
         
-        if [ -z "$RUN_ID" ]; then
-          echo "Error: No run ID found"
+        # Find model path dynamically (tidak hardcode experiment ID)
+        MODEL_PATH=$(find mlruns -type d -name "model" -path "*/artifacts/model" | head -n 1)
+        
+        if [ -z "$MODEL_PATH" ]; then
+          echo "❌ Error: Model artifacts not found"
+          echo "MLruns structure:"
+          tree mlruns/ || find mlruns -type d
           exit 1
         fi
         
-        echo "Building Docker image for run: $RUN_ID"
+        echo "✅ Found model at: $MODEL_PATH"
+        echo "Building Docker image..."
         
         # Build Docker image
         mlflow models build-docker \
-          -m "mlruns/1/$RUN_ID/artifacts/model" \
+          -m "$MODEL_PATH" \
           -n "ai4i2020-model"
     
     - name: Login to Docker Hub
