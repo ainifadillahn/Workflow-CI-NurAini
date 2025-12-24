@@ -42,8 +42,9 @@ jobs:
     - name: Build Docker Image with MLflow
       run: |
         cd MLProject
+        RUN_ID=$(ls mlruns/0 | tail -n 1)
         mlflow models build-docker \
-          -m runs:/$(ls mlruns/*/* | head -n 1)/model \
+          -m runs:/0/$RUN_ID/model \
           -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
 
     - name: Push Docker Image
