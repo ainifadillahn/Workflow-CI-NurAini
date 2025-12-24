@@ -31,7 +31,11 @@ def main(data_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="dataset_preprocessed")
+    parser.add_argument(
+        "--data_path",
+        type=str,
+        default="ai4i2020_preprocessed" 
+    )
     args = parser.parse_args()
 
     main(args.data_path)
