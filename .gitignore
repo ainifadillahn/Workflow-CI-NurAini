@@ -1,13 +1,26 @@
-# Virtual environment
-venv/
-.env/
-
-# Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
 
 # MLflow
 mlruns/
+mlflow.db
+.mlflow/
+
+# Models
+models/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
+Thumbs.db
