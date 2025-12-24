@@ -28,25 +28,15 @@ jobs:
         cd MLProject
         mlflow run . --env-manager=local --experiment-name "ai4i2020-experiment"
     
-    - name: Upload artifacts
+    - name: Upload artifacts to GitHub
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: mlflow-artifacts
+        name: mlflow-model-artifacts
         path: MLProject/mlruns/
         retention-days: 30
     
-    - name: Commit artifacts
-      if: success()
+    - name: Summary
       run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
-        
-        mkdir -p models
-        cp -r MLProject/mlruns/* models/ 2>/dev/null || true
-        
-        git add models/
-        git diff --staged --quiet || git commit -m "Update model [skip ci]"
-        git push || true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "✅ Training completed!"
+        echo "Artifacts uploaded to GitHub Actions artifacts"
+        echo "Download from: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
