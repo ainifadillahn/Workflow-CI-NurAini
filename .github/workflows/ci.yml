@@ -55,39 +55,33 @@ jobs:
         name: mlflow-model-artifacts
         path: MLProject/mlruns/
     
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
-    - name: Install MLflow
+    - name: Install dependencies
       run: |
-        pip install mlflow==2.9.0 scikit-learn pandas numpy
+        pip install mlflow==2.9.0 scikit-learn pandas numpy docker
     
-    - name: Find and Build Docker Image
+    - name: Find Model Path
+      id: find-model
+      run: |
+        cd MLProject
+        MODEL_PATH=$(find mlruns -type d -name "model" -path "*/artifacts/model" | head -n 1)
+        echo "model_path=$MODEL_PATH" >> $GITHUB_OUTPUT
+        echo "✅ Found model at: $MODEL_PATH"
+    
+    - name: Build Docker Image
       run: |
         cd MLProject
         
-        echo "=== Debugging mlruns structure ==="
-        ls -la mlruns/
-        find mlruns -type d
-        
-        # Find model path dynamically (tidak hardcode experiment ID)
-        MODEL_PATH=$(find mlruns -type d -name "model" -path "*/artifacts/model" | head -n 1)
-        
-        if [ -z "$MODEL_PATH" ]; then
-          echo "❌ Error: Model artifacts not found"
-          echo "MLruns structure:"
-          tree mlruns/ || find mlruns -type d
-          exit 1
-        fi
-        
-        echo "✅ Found model at: $MODEL_PATH"
-        echo "Building Docker image..."
-        
-        # Build Docker image
+        # Build using mlflow
         mlflow models build-docker \
-          -m "$MODEL_PATH" \
+          -m "${{ steps.find-model.outputs.model_path }}" \
           -n "ai4i2020-model"
     
     - name: Login to Docker Hub
