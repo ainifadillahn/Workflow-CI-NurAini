@@ -4,30 +4,41 @@ from sklearn.metrics import roc_auc_score
 import mlflow
 import mlflow.sklearn
 
-mlflow.set_experiment("Machine_Failure_RF")
-mlflow.autolog()
-
 def main():
-    train_df = pd.read_csv("ai4i2020_preprocessed/train.csv")
-    test_df  = pd.read_csv("ai4i2020_preprocessed/test.csv")
+    mlflow.set_experiment("Machine_Failure_RF")
 
-    X_train = train_df.drop(columns=["Machine failure"])
-    y_train = train_df["Machine failure"]
+    with mlflow.start_run():
 
-    X_test = test_df.drop(columns=["Machine failure"])
-    y_test = test_df["Machine failure"]
+        train_df = pd.read_csv("ai4i2020_preprocessed/train.csv")
+        test_df  = pd.read_csv("ai4i2020_preprocessed/test.csv")
 
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42
-    )
+        X_train = train_df.drop(columns=["Machine failure"])
+        y_train = train_df["Machine failure"]
 
-    model.fit(X_train, y_train)
+        X_test = test_df.drop(columns=["Machine failure"])
+        y_test = test_df["Machine failure"]
 
-    y_proba = model.predict_proba(X_test)[:, 1]
-    auc = roc_auc_score(y_test, y_proba)
+        model = RandomForestClassifier(
+            n_estimators=100,
+            random_state=42
+        )
 
-    print("ROC AUC:", auc)
+        model.fit(X_train, y_train)
+
+        y_proba = model.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_proba)
+
+        # log metric
+        mlflow.log_metric("roc_auc", auc)
+
+        # log model
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model"
+        )
+
+        print("ROC AUC:", auc)
+
 
 if __name__ == "__main__":
     main()
