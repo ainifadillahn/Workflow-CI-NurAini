@@ -41,12 +41,10 @@ jobs:
 
     - name: Build Docker Image with MLflow
       run: |
-        cd MLProject
-        RUN_ID=$(ls mlruns/0 | tail -n 1)
         mlflow models build-docker \
-          -m runs:/0/$RUN_ID/model \
+          -m "models:/MachineFailureRF/1" \
           -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
-
+          
     - name: Push Docker Image
       run: |
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model

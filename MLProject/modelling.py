@@ -24,6 +24,12 @@ def main(data_path):
 
     model.fit(X_train, y_train)
 
+    mlflow.sklearn.log_model(
+    sk_model=model,
+    artifact_path="model",
+    registered_model_name="MachineFailureRF"
+    )
+
     y_proba = model.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, y_proba)
 
