@@ -40,7 +40,6 @@ def main(data_path):
 
     # =========================
     # Log to MLflow
-    # MLflow Projects sudah setup semuanya, tinggal log!
     # =========================
     mlflow.log_param("model_type", "RandomForestClassifier")
     mlflow.log_param("n_estimators", 100)
