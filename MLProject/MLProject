@@ -1,9 +1,7 @@
-name: ai4i2020-project
+name: ai4i2020_project
 
 entry_points:
   main:
     parameters:
-      data_path:
-        type: path
-        default: ai4i2020_preprocessed
+      data_path: {type: path, default: "ai4i2020_preprocessed"}
     command: "python modelling.py --data_path {data_path}"

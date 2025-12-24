@@ -1,13 +1,19 @@
+import argparse
+import os
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
 import mlflow
 import mlflow.sklearn
-import argparse
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+
 
 def main(data_path):
-    train_df = pd.read_csv(f"{data_path}/train.csv")
-    test_df  = pd.read_csv(f"{data_path}/test.csv")
+    # =========================
+    # Load data
+    # =========================
+    train_df = pd.read_csv(os.path.join(data_path, "train.csv"))
+    test_df  = pd.read_csv(os.path.join(data_path, "test.csv"))
 
     X_train = train_df.drop(columns=["Machine failure"])
     y_train = train_df["Machine failure"]
@@ -15,36 +21,44 @@ def main(data_path):
     X_test = test_df.drop(columns=["Machine failure"])
     y_test = test_df["Machine failure"]
 
+    # =========================
+    # Train model
+    # =========================
     model = RandomForestClassifier(
         n_estimators=100,
-        random_state=42
+        random_state=42,
+        n_jobs=-1
     )
-
-    # LOG PARAM
-    mlflow.log_param("model_type", "RandomForestClassifier")
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_param("random_state", 42)
 
     model.fit(X_train, y_train)
 
-    y_proba = model.predict_proba(X_test)[:, 1]
-    auc = roc_auc_score(y_test, y_proba)
+    # =========================
+    # Evaluation
+    # =========================
+    y_pred_proba = model.predict_proba(X_test)[:, 1]
+    roc_auc = roc_auc_score(y_test, y_pred_proba)
 
-    # LOG METRIC
-    mlflow.log_metric("roc_auc", auc)
+    # =========================
+    # Log to MLflow
+    # MLflow Projects sudah setup semuanya, tinggal log!
+    # =========================
+    mlflow.log_param("model_type", "RandomForestClassifier")
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("random_state", 42)
+    mlflow.log_metric("roc_auc", roc_auc)
 
-    # LOG MODEL
-    mlflow.sklearn.log_model(model, artifact_path="model")
+    mlflow.sklearn.log_model(
+        sk_model=model,
+        artifact_path="model"
+    )
 
-    print("ROC AUC:", auc)
+    print(f"✅ Training completed successfully!")
+    print(f"ROC AUC: {roc_auc:.4f}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--data_path",
-        type=str,
-        default="ai4i2020_preprocessed"
-    )
+    parser.add_argument("--data_path", type=str, required=True)
     args = parser.parse_args()
 
     main(args.data_path)
