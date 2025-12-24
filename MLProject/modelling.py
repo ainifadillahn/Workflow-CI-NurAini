@@ -7,51 +7,49 @@ import argparse
 import os
 
 # ============================
-# MLflow CONFIG
+# MLflow config (AMAN CI)
 # ============================
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("ai4i2020-experiment")
-mlflow.autolog()
 
 def main(data_path):
-    # ============================
-    # Load data
-    # ============================
-    train_df = pd.read_csv(os.path.join(data_path, "train.csv"))
-    test_df  = pd.read_csv(os.path.join(data_path, "test.csv"))
+    with mlflow.start_run():
 
-    X_train = train_df.drop(columns=["Machine failure"])
-    y_train = train_df["Machine failure"]
+        # Load data
+        train_df = pd.read_csv(os.path.join(data_path, "train.csv"))
+        test_df  = pd.read_csv(os.path.join(data_path, "test.csv"))
 
-    X_test = test_df.drop(columns=["Machine failure"])
-    y_test = test_df["Machine failure"]
+        X_train = train_df.drop(columns=["Machine failure"])
+        y_train = train_df["Machine failure"]
 
-    # ============================
-    # Train model
-    # ============================
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42
-    )
+        X_test = test_df.drop(columns=["Machine failure"])
+        y_test = test_df["Machine failure"]
 
-    model.fit(X_train, y_train)
+        # Train model
+        model = RandomForestClassifier(
+            n_estimators=100,
+            random_state=42
+        )
 
-    # ============================
-    # Log model (TANPA registry)
-    # ============================
-    mlflow.sklearn.log_model(
-        sk_model=model,
-        name="model"
-    )
+        model.fit(X_train, y_train)
 
-    # ============================
-    # Evaluation
-    # ============================
-    y_proba = model.predict_proba(X_test)[:, 1]
-    auc = roc_auc_score(y_test, y_proba)
+        # Log params
+        mlflow.log_param("n_estimators", 100)
+        mlflow.log_param("model_type", "RandomForestClassifier")
 
-    mlflow.log_metric("roc_auc", auc)
-    print("ROC AUC:", auc)
+        # Evaluation
+        y_proba = model.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_proba)
+
+        mlflow.log_metric("roc_auc", auc)
+
+        # Log model
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            name="model"
+        )
+
+        print("ROC AUC:", auc)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -23,7 +23,7 @@ jobs:
         pip install --upgrade pip
         pip install mlflow scikit-learn pandas numpy
 
-    - name: Run MLflow Project (Training)
+    - name: Run MLflow Project
       run: |
         cd MLProject
         mlflow run . --env-manager=local
@@ -40,11 +40,11 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build Docker Image from Latest Run
+    - name: Build Docker Image
       run: |
         cd MLProject
         RUN_ID=$(ls mlruns/*/*/meta.yaml | head -n 1 | awk -F'/' '{print $3}')
-        echo "Using RUN_ID=$RUN_ID"
+        echo "RUN_ID=$RUN_ID"
 
         mlflow models build-docker \
           -m "runs:/$RUN_ID/model" \
