@@ -54,13 +54,25 @@ jobs:
         name: mlflow-model-artifacts
         path: MLProject/mlruns/
 
+    # Verifikasi Dockerfile ada
+    - name: Verify Dockerfile exists
+      run: |
+        if [ ! -f "MLProject/Dockerfile" ]; then
+          echo "❌ ERROR: Dockerfile not found in MLProject/"
+          exit 1
+        fi
+        echo "✅ Dockerfile found"
+        ls -la MLProject/
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    # Explicit file path
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
         context: ./MLProject
+        file: ./MLProject/Dockerfile 
         push: false
         tags: ai4i2020-model:latest
         load: true
